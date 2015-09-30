@@ -48,7 +48,7 @@ std::vector<double> lam_berg = {.4127, .2669, .0578};
 std::vector<double> sigmas = {.33, .0042, .33};
 
 /*	radii fromm innermost to outer (R) */
-std::vector<double> radii = {(71.00), (79.00), (85.00)};
+std::vector<double> radii = {(71.00/mill_to_meter), (79.00/mill_to_meter), (85.00/mill_to_meter)};
 
 
 
@@ -139,6 +139,7 @@ arma::mat forward_model_gain_matrix_solution(std::vector<double>& rq){
 
 
 	arma::mat arma_rq = arma::rowvec(rq);
+	arma_rq = arma_rq/mill_to_meter;
 	arma::mat arma_rq_mag = row_norm(arma_rq); //(Px1) (1 by 1)
 
 	double re_mag = radii[num_layers-1];
@@ -146,6 +147,8 @@ arma::mat forward_model_gain_matrix_solution(std::vector<double>& rq){
 	for(int i=0; i< num_sensors; ++i)
 		arma_re.row(i) =  arma::rowvec(biosemi_coords_to_mni(sensor_map[i]));
 
+	arma_re = arma_re/mill_to_meter;
+	
 	arma::mat arma_re_n = arma_re/arma::max(arma::max(arma_re));
 
 	arma::mat arma_rq_mag_mat = arma::repmat(arma_rq_mag, 1,3);
@@ -336,12 +339,16 @@ arma::mat fast_forward_model_gain_matrix_solution(std::vector<double>& rq){
 int main(int argc, char *argv[]){
 
 	std::vector<double> rq {-6,-60,18};
-	arma::mat lead_field_potential = forward_model_gain_matrix_solution(rq);
-	arma::mat fs = lead_field_potential.t();
-	for(int i=0; i< fs.n_cols;++i){
+	arma::mat lfp = forward_model_gain_matrix_solution(rq);
+	//WTs=(LTsC−1Ls)−1LTsC−1
+	arma::mat lfp_t = lfp.t();
+	arma::mat cm;
+	cm.load("test_cov.mat", arma::raw_ascii);
+	arma::mat ws = ((lfp_t * (cm.i()) * lfp).i() * (lfp_t * (cm.i())));
+	/*for(int i=0; i< fs.n_cols;++i){
 		double mag_l = std::sqrt(std::pow(fs(0,i),2) + std::pow(fs(1,i),2) + std::pow(fs(2,i),2));
 		fs.col(i) = fs.col(i)/mag_l;
-	}
-	std::cout << fs << std::endl;
+	}*/
+	std::cout << ws << std::endl;
 	return 0;
 }
