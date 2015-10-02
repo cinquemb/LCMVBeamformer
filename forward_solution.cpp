@@ -336,19 +336,42 @@ arma::mat fast_forward_model_gain_matrix_solution(std::vector<double>& rq){
 
     return gain_matrix;
 }
+
+arma::cx_mat compute_gamma_sq_sqrt(arma::mat& gamma){
+	arma::mat gamma_sq = gamma*gamma;
+	arma::cx_vec eigval;
+	arma::cx_mat v;
+	arma::eig_gen(eigval, v, gamma_sq);
+	arma::cx_mat d = (v.i()) * gamma_sq * v;
+	arma::cx_mat d_sq = arma::sqrt(d);
+	arma::cx_mat gamma_sq_sqrt = v * d_sq * (v.i());
+	return gamma_sq_sqrt;
+}
+
 int main(int argc, char *argv[]){
+
+	bool is_distortionless = true;
 
 	std::vector<double> rq {-6,-60,18};
 	arma::mat lfp = forward_model_gain_matrix_solution(rq);
 	//WTs=(LTsC−1Ls)−1LTsC−1
+	
 	arma::mat lfp_t = lfp.t();
 	arma::mat cm;
 	cm.load("test_cov.mat", arma::raw_ascii);
-	arma::mat ws = ((lfp_t * (cm.i()) * lfp).i() * (lfp_t * (cm.i())));
-	/*for(int i=0; i< fs.n_cols;++i){
-		double mag_l = std::sqrt(std::pow(fs(0,i),2) + std::pow(fs(1,i),2) + std::pow(fs(2,i),2));
-		fs.col(i) = fs.col(i)/mag_l;
-	}*/
-	std::cout << ws << std::endl;
+	arma::mat gamma = (lfp_t * (cm.i()) * lfp).i();
+
+	if(is_distortionless){
+		//distorstionless
+		arma::mat ws = (gamma * (lfp_t * (cm.i())));
+		std::cout << ws << std::endl;
+	}
+	else{
+		//weight vector normalized
+		arma::cx_mat gamma_sq_sqrt = compute_gamma_sq_sqrt(gamma);
+		arma::cx_mat ws = (gamma_sq_sqrt * (lfp_t * cm.i()));
+		std::cout << ws << std::endl;
+	}
+	
 	return 0;
 }

@@ -55,7 +55,9 @@ arma::mat avg_covariance_matrix_from_file_samples(std::string& file_name){
     	line_count++;
     }
     in.close();
-    arma::mat covariance_sample_matrix = arma::cov(sample_matrix);
+    double smm = arma::mean(arma::mean(sample_matrix));
+    arma::mat sample_matrix_norm = sample_matrix - smm;
+    arma::mat covariance_sample_matrix = arma::cov(sample_matrix_norm);
     return covariance_sample_matrix;
 }
 
