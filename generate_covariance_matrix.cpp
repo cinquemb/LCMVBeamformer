@@ -21,22 +21,15 @@ double biosemi_microvoltage_factor = 8192;
 //num_colums
 int num_colums = 128;
 
-/*
-# XXX: these should be optimized, as they can be a bottleneck.
-def _logcosh(x, fun_args=None):
-    alpha = fun_args.get('alpha', 1.0) # comment it out?
-    x *= alpha
-    gx = np.tanh(x, x) # apply the tanh inplace
-    g_x = np.empty(x.shape[0])
-    # XXX compute in chunks to avoid extra allocation
-    for i, gx_i in enumerate(gx): # please don't vectorize.
-        g_x[i] = (alpha * (1 - gx_i ** 2)).mean()
-    return gx, g_x
-*/
-
-arma::mat logcosh(arma::mat& x){
+std::vector<arma::mat> logcosh(arma::mat& x){
     arma::mat gx = arma::tanh(x);
-    return gx;
+    arma::mat g_x(gx.n_rows,1);
+    for(int i=0; i<gx.n_rows; ++i){
+        arma::rowvec dtanh_i = 1 -arma::pow(gx.row(i),2);
+        g_x.row(i) = arma::mean(dtanh_i);
+    }
+    std::vector<arma::mat> gx_dgx{gx,g_x};
+    return gx_dgx;
 };
 
 arma::mat sym_decorrelation(arma::mat& w){
@@ -44,9 +37,7 @@ arma::mat sym_decorrelation(arma::mat& w){
     arma::vec eigval;
     arma::mat eigvec;
     arma::mat w_dot = (w * w.t());
-    std::cout << "post w_dot" <<std::endl;
     arma::eig_sym(eigval, eigvec, w_dot);
-    std::cout << "post eig_sym" <<std::endl;
     arma::mat n_w = (((eigvec * arma::diagmat(1 / arma::sqrt(eigval))) * eigvec.t()) * w);
     return n_w;
 }
@@ -75,14 +66,11 @@ warnings.warn('FastICA did not converge. Consider increasing '
 return W, ii + 1
     */
     arma::mat w = sym_decorrelation(w_init);
-    std::cout << "post sym_decorrelation" <<std::endl;
     double p_ = w_init.n_cols;
     for(int i=0;i<max_iter;++i){
         arma::mat wx = w * x;
-        std::cout << "post wx" <<std::endl;
-
-        arma::mat gx = logcosh(wx);
-        std::cout << gx <<std::endl;
+        std::vector<arma::mat> gx_dgx = logcosh(wx);
+        std::cout << gx_dgx[1] <<std::endl;
         exit(0);
 
     }
