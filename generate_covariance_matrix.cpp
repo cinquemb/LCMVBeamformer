@@ -80,6 +80,7 @@ return W, ii + 1
     for(int i=0;i<max_iter;++i){
         arma::mat wx = w * x;
         std::cout << "post wx" <<std::endl;
+
         arma::mat gx = logcosh(wx);
         std::cout << gx <<std::endl;
         exit(0);
@@ -99,9 +100,11 @@ arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
     arma::mat v_matrix;
     arma::svds(u, simga_matrix, v_matrix, arma::sp_mat(col_norm_sample_matrix), n_components);
 
-    arma::mat k = (u / arma::diagmat(simga_matrix)).t();
+    arma::mat k(u.n_rows,u.n_cols);
+    for(int i=0;i<n_components;++i)
+        k.col(i) = sample_matrix.col(i)/simga_matrix(i);
+
     arma::mat whiten_matrix = (k * col_norm_sample_matrix) * std::sqrt(sample_matrix.n_cols);
-    //arma::mat whiten_matrix = col_norm_sample_matrix * v_matrix.t();
     return whiten_matrix;
 }
 
@@ -149,7 +152,6 @@ int main(int argc, char *argv[]) {
     double smm = arma::mean(arma::mean(sample_matrix));
     arma::mat sample_matrix_norm = sample_matrix - smm;
     arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_t);
-    std::cout << "post whiten " << whiten_matrix.n_rows<<" " << whiten_matrix.n_cols<< std::endl;
     
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
