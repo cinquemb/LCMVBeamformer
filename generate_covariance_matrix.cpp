@@ -23,7 +23,7 @@ int num_colums = 128;
 
 std::vector<arma::mat> logcosh(arma::mat& x){
     arma::mat gx = arma::tanh(x);
-    arma::mat g_x(gx.n_rows,1);
+    arma::mat g_x(gx.n_rows, 1);
     for(int i=0; i<gx.n_rows; ++i){
         arma::rowvec dtanh_i = 1 -arma::pow(gx.row(i),2);
         g_x.row(i) = arma::mean(dtanh_i);
@@ -38,42 +38,34 @@ arma::mat sym_decorrelation(arma::mat& w){
     arma::mat eigvec;
     arma::mat w_dot = (w * w.t());
     arma::eig_sym(eigval, eigvec, w_dot);
+    //std::cout << eigval << std::endl;
     arma::mat n_w = (((eigvec * arma::diagmat(1 / arma::sqrt(eigval))) * eigvec.t()) * w);
     return n_w;
 }
 
 arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, double tolerance){
-    /*
-    """Parallel FastICA.
-Used internally by FastICA --main loop
-"""
-W = _sym_decorrelation(w_init)
-del w_init
-p_ = float(X.shape[1])
-for ii in moves.xrange(max_iter):
-    gwtx, g_wtx = g(fast_dot(W, X), fun_args)
-    W1 = _sym_decorrelation(fast_dot(gwtx, X.T) / p_
-        - g_wtx[:, np.newaxis] * W)
-    del gwtx, g_wtx
-    # builtin max, abs are faster than numpy counter parts.
-    lim = max(abs(abs(np.diag(fast_dot(W1, W.T))) - 1))
-    W = W1
-    if lim < tol:
-        break
-else:
-warnings.warn('FastICA did not converge. Consider increasing '
-'tolerance or the maximum number of iterations.')
-return W, ii + 1
-    */
     arma::mat w = sym_decorrelation(w_init);
     double p_ = w_init.n_cols;
     for(int i=0;i<max_iter;++i){
         arma::mat wx = w * x;
         std::vector<arma::mat> gx_dgx = logcosh(wx);
-        std::cout << gx_dgx[1] <<std::endl;
-        exit(0);
+        arma::mat gwtx_xt = (gx_dgx[0] * x.t()) / p_;
+        arma::mat g_wtx_w = arma::repmat(gx_dgx[1], 1, gx_dgx[1].n_rows) * w;
+        arma::mat t_w1 = gwtx_xt - g_wtx_w;
 
+        arma::mat w1 = sym_decorrelation(t_w1);
+        
+        arma::mat w1_wt = w1 * w.t();
+        double lim = arma::max(arma::abs((arma::abs((w1_wt.diag())) -1)));
+        
+        w = w1;
+
+        std::cout << "lim: " << lim << " tolerance: "  << tolerance << std::endl;
+        if(lim < tolerance)
+            break;
     }
+
+    return w;
 }
 
 arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
@@ -90,7 +82,7 @@ arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
 
     arma::mat k(u.n_rows,u.n_cols);
     for(int i=0;i<n_components;++i)
-        k.col(i) = sample_matrix.col(i)/simga_matrix(i);
+        k.col(i) = u.col(i)/simga_matrix(i);
 
     arma::mat whiten_matrix = (k * col_norm_sample_matrix) * std::sqrt(sample_matrix.n_cols);
     return whiten_matrix;
@@ -109,7 +101,7 @@ arma::mat matrix_from_file_samples(std::string& file_name){
 	arma::mat sample_matrix(window_size, num_colums);
 
 	while (std::getline(in,line)){
-		if(line_count >= 2048)
+		if(line_count >= window_size)
 			break;
 
     	data_vector_string.clear();
@@ -139,12 +131,15 @@ int main(int argc, char *argv[]) {
     arma::mat sample_matrix_t = sample_matrix.t();
     double smm = arma::mean(arma::mean(sample_matrix));
     arma::mat sample_matrix_norm = sample_matrix - smm;
-    arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_t);
+    arma::mat sample_matrix_norm_t = sample_matrix_norm.t();
+    arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_norm_t);
     
+    arma::arma_rng::set_seed(42);
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
-    fast_ica_parallel(whiten_matrix, covmat, 200, 1e-04);
+    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, covmat, 200, 1e-03);
 
 	covmat.save("test_cov.mat", arma::raw_ascii);
+    ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
 	return 0;
 }
