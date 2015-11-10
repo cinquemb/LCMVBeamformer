@@ -1,5 +1,5 @@
 
-CFLAGS= -Wall -Os -O3 -std=gnu++11 -pedantic  /usr/local/lib/libarmadillo.dylib
+CFLAGS= -Wall -Os -O2 -std=gnu++11 -pedantic  /usr/local/lib/libarmadillo.dylib
 
 all:
 	ccache clang++ forward_solution.cpp -o forward_solution $(CFLAGS)

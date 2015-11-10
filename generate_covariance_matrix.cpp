@@ -13,7 +13,7 @@
 const int offset_node = 0;
 
 //window size
-const int window_size = 2048;
+const int window_size = 2048*10;
 
 //factor to convert biosemi values into uv
 double biosemi_microvoltage_factor = 8192;
@@ -38,33 +38,45 @@ arma::mat sym_decorrelation(arma::mat& w){
     arma::mat eigvec;
     arma::mat w_dot = (w * w.t());
     arma::eig_sym(eigval, eigvec, w_dot);
-    //std::cout << eigval << std::endl;
     arma::mat n_w = (((eigvec * arma::diagmat(1 / arma::sqrt(eigval))) * eigvec.t()) * w);
     return n_w;
 }
 
+arma::mat sym_decorrelation_complex(arma::mat& w){
+    //W <- (W * W.T) ^{-1/2} * W
+
+    arma::cx_mat ww = arma::cx_mat(w,arma::mat(w.n_rows, w.n_cols, arma::fill::zeros));
+    arma::vec eigval;
+    arma::cx_mat eigvec;
+    arma::cx_mat w_dot = (ww * ww.t());
+    arma::eig_sym(eigval, eigvec, w_dot);
+    arma::cx_mat n_w = (((eigvec * arma::diagmat(1 / arma::sqrt(eigval))) * eigvec.t()) * ww);
+    arma::cx_mat n_w_h_adj = arma::conj(n_w.t());
+    arma::cx_mat r_n_w = n_w * n_w_h_adj;
+    return arma::real(r_n_w);
+}
+
 arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, double tolerance){
-    arma::mat w = sym_decorrelation(w_init);
+    arma::mat w = sym_decorrelation_complex(w_init);
     double p_ = w_init.n_cols;
     for(int i=0;i<max_iter;++i){
         arma::mat wx = w * x;
         std::vector<arma::mat> gx_dgx = logcosh(wx);
         arma::mat gwtx_xt = (gx_dgx[0] * x.t()) / p_;
+        std::cout << gwtx_xt << std::endl;
         arma::mat g_wtx_w = arma::repmat(gx_dgx[1], 1, gx_dgx[1].n_rows) * w;
         arma::mat t_w1 = gwtx_xt - g_wtx_w;
 
-        arma::mat w1 = sym_decorrelation(t_w1);
+        arma::mat w1 = sym_decorrelation_complex(t_w1);
+
         
         arma::mat w1_wt = w1 * w.t();
         double lim = arma::max(arma::abs((arma::abs((w1_wt.diag())) -1)));
-        
-        w = w1;
-
         std::cout << "lim: " << lim << " tolerance: "  << tolerance << std::endl;
         if(lim < tolerance)
             break;
+        w = w1;   
     }
-
     return w;
 }
 
@@ -134,7 +146,7 @@ int main(int argc, char *argv[]) {
     arma::mat sample_matrix_norm_t = sample_matrix_norm.t();
     arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_norm_t);
     
-    arma::arma_rng::set_seed(42);
+    //arma::arma_rng::set_seed(42);
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
     arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, covmat, 200, 1e-03);

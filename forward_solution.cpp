@@ -353,7 +353,9 @@ int main(int argc, char *argv[]){
 	bool is_distortionless = true;
 
 	std::vector<double> rq {-6,-60,18};
-	arma::mat lfp = forward_model_gain_matrix_solution(rq);
+	arma::mat fm;
+	fm.load("ica_matrix.mat", arma::raw_ascii);
+	arma::mat lfp = fm * forward_model_gain_matrix_solution(rq);
 	//WTs=(LTsC−1Ls)−1LTsC−1
 	
 	arma::mat lfp_t = lfp.t();
