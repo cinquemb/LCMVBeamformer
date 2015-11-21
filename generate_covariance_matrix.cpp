@@ -13,7 +13,7 @@
 const int offset_node = 0;
 
 //window size
-const int window_size = 2048*10;
+const int window_size = 2048;
 
 //factor to convert biosemi values into uv
 double biosemi_microvoltage_factor = 8192;
@@ -28,7 +28,7 @@ std::vector<arma::mat> logcosh(arma::mat& x){
         arma::rowvec dtanh_i = 1 -arma::pow(gx.row(i),2);
         g_x.row(i) = arma::mean(dtanh_i);
     }
-    std::vector<arma::mat> gx_dgx{gx,g_x};
+    std::vector<arma::mat> gx_dgx{g_x,gx};
     return gx_dgx;
 };
 
@@ -57,19 +57,18 @@ arma::mat sym_decorrelation_complex(arma::mat& w){
 }
 
 arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, double tolerance){
-    arma::mat w = sym_decorrelation_complex(w_init);
+    arma::mat w = sym_decorrelation(w_init);
     double p_ = w_init.n_cols;
     for(int i=0;i<max_iter;++i){
         arma::mat wx = w * x;
         std::vector<arma::mat> gx_dgx = logcosh(wx);
         arma::mat gwtx_xt = (gx_dgx[0] * x.t()) / p_;
-        std::cout << gwtx_xt << std::endl;
+        
         arma::mat g_wtx_w = arma::repmat(gx_dgx[1], 1, gx_dgx[1].n_rows) * w;
         arma::mat t_w1 = gwtx_xt - g_wtx_w;
 
-        arma::mat w1 = sym_decorrelation_complex(t_w1);
+        arma::mat w1 = sym_decorrelation(t_w1);
 
-        
         arma::mat w1_wt = w1 * w.t();
         double lim = arma::max(arma::abs((arma::abs((w1_wt.diag())) -1)));
         std::cout << "lim: " << lim << " tolerance: "  << tolerance << std::endl;
@@ -149,7 +148,7 @@ int main(int argc, char *argv[]) {
     //arma::arma_rng::set_seed(42);
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
-    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, covmat, 200, 1e-03);
+    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 1e-03);
 
 	covmat.save("test_cov.mat", arma::raw_ascii);
     ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
