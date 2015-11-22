@@ -13,13 +13,15 @@
 const int offset_node = 0;
 
 //window size
-const int window_size = 2048;
+const int window_size = 2048*10;
 
 //factor to convert biosemi values into uv
 double biosemi_microvoltage_factor = 8192;
 
 //num_colums
 int num_colums = 128;
+
+bool test_mode = true;
 
 std::vector<arma::mat> logcosh(arma::mat& x){
     arma::mat gx = arma::tanh(x);
@@ -28,18 +30,23 @@ std::vector<arma::mat> logcosh(arma::mat& x){
         arma::rowvec dtanh_i = 1 -arma::pow(gx.row(i),2);
         g_x.row(i) = arma::mean(dtanh_i);
     }
-    std::vector<arma::mat> gx_dgx{g_x,gx};
+    std::vector<arma::mat> gx_dgx{gx,g_x};
     return gx_dgx;
 };
 
 arma::mat sym_decorrelation(arma::mat& w){
-    //W <- (W * W.T) ^{-1/2} * W
-    arma::vec eigval;
-    arma::mat eigvec;
-    arma::mat w_dot = (w * w.t());
-    arma::eig_sym(eigval, eigvec, w_dot);
-    arma::mat n_w = (((eigvec * arma::diagmat(1 / arma::sqrt(eigval))) * eigvec.t()) * w);
-    return n_w;
+    //W <- (W * W.T) ^{-1/2} * W or W = U * V.t()
+    int n_components = std::min({w.n_rows, w.n_cols});
+    arma::mat u;
+    arma::vec simga_matrix;
+    arma::mat v_matrix;
+
+    if(!test_mode)
+        arma::svd(u, simga_matrix, v_matrix, w);
+    else
+        arma::svds(u, simga_matrix, v_matrix, arma::sp_mat(w), n_components);
+
+    return (u * v_matrix.t());
 }
 
 arma::mat sym_decorrelation_complex(arma::mat& w){
@@ -68,6 +75,7 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
         arma::mat t_w1 = gwtx_xt - g_wtx_w;
 
         arma::mat w1 = sym_decorrelation(t_w1);
+        std::cout << t_w1 << std::endl;
 
         arma::mat w1_wt = w1 * w.t();
         double lim = arma::max(arma::abs((arma::abs((w1_wt.diag())) -1)));
@@ -89,7 +97,11 @@ arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
     arma::mat u;
     arma::vec simga_matrix;
     arma::mat v_matrix;
-    arma::svds(u, simga_matrix, v_matrix, arma::sp_mat(col_norm_sample_matrix), n_components);
+
+    if(!test_mode)
+        arma::svd(u, simga_matrix, v_matrix, col_norm_sample_matrix);
+    else
+        arma::svds(u, simga_matrix, v_matrix, arma::sp_mat(col_norm_sample_matrix), n_components);
 
     arma::mat k(u.n_rows,u.n_cols);
     for(int i=0;i<n_components;++i)
@@ -137,6 +149,8 @@ arma::mat matrix_from_file_samples(std::string& file_name){
 }
 
 int main(int argc, char *argv[]) {
+    if(test_mode)
+        std::cout << "test mode" << std::endl;
 	std::string file_name(argv[1]);
 	arma::mat sample_matrix = matrix_from_file_samples(file_name);
     arma::mat sample_matrix_t = sample_matrix.t();
@@ -148,7 +162,7 @@ int main(int argc, char *argv[]) {
     //arma::arma_rng::set_seed(42);
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
-    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 1e-03);
+    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 1);
 
 	covmat.save("test_cov.mat", arma::raw_ascii);
     ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
