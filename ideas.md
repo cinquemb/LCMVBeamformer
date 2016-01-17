@@ -40,6 +40,12 @@
 
     -SMR wave – (12.5 – 15.5 Hz)
 
+    	1. "The meaning of SMR is not fully understood. Phenomenologically, a person is producing a stronger SMR amplitude when the corresponding sensorimotor areas are idle, e.g. during states of immobility. SMR typically decrease in amplitude when the corresponding sensory or motor areas are activated, e.g. during motor tasks and even during motor imagery.[2]"
+
+    	2. "Conceptually, SMR is sometimes mixed up with alpha waves of occipital origin, the strongest source of neural signals in the EEG. One reason might be, that without appropriate spatial filtering the SMR is very difficult to detect as it is usually superimposed by the stronger occipital alpha waves. The feline SMR has been noted as being analogous to the human mu rhythm.[3]"
+    	
+    	https://en.wikipedia.org/wiki/Sensorimotor_rhythm
+
     -Beta wave – (16 – 31 Hz)
 
     -Gamma wave – (32 – 100 Hz)
