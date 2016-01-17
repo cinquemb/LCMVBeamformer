@@ -13,7 +13,7 @@
 const int offset_node = 0;
 
 //window size
-const int window_size = 2048*10;
+const int window_size = 2048;
 
 //factor to convert biosemi values into uv
 double biosemi_microvoltage_factor = 8192;
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
     //arma::arma_rng::set_seed(42);
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
-    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 1);
+    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 1e-003);
 
 	covmat.save("test_cov.mat", arma::raw_ascii);
     ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
