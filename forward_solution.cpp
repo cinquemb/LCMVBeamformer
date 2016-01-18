@@ -361,7 +361,7 @@ int main(int argc, char *argv[]){
 	arma::mat montage_matrix(sensor_map.size(),sensor_map.size());
 	montage_matrix =  identiy - (1/sensor_map.size() * arma::ones(sensor_map.size() ,sensor_map.size()));
 
-	arma::mat lfp = fm * forward_model_gain_matrix_solution(rq);
+	arma::mat lfp = fm * fast_forward_model_gain_matrix_solution(rq);
 	//WTs=(LTsC−1Ls)−1LTsC−1
 	
 	arma::mat lfp_t = lfp.t();
