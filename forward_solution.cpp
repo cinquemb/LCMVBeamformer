@@ -271,6 +271,7 @@ arma::mat fast_forward_model_gain_matrix_solution(std::vector<double>& rq){
 	arma::mat arma_re_mag_sq = arma::rowvec(re_mag_sq);
 	
 	arma::mat arma_rq = arma::rowvec(rq);
+	arma_rq = arma_rq/mill_to_meter;
 
 	arma::mat arma_rq_mag = row_norm(arma_rq); //(Px1) (1 by 1)
 	arma::mat arma_rq_mag_sq = arma_rq_mag % arma_rq_mag; //(Px1) (1 by 1)
