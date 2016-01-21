@@ -67,3 +67,7 @@
 	-pattern classifier in spactialtemporal data
 
 	-get idea of percision with 3d Voronoi diagram (distance within threashold? where signal is invariant)
+
+
+- Beamforming filter matrix
+	- instead of test dataset, use running mean normalized time series for 100ms for covariance matrix

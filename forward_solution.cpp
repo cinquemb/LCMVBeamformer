@@ -109,7 +109,7 @@ std::vector<arma::mat> dlegpoly(int&n, arma::mat& x){
 	return dlegpoly;
 }
 
-arma::mat forward_model_gain_matrix_solution(std::vector<double>& rq){
+arma::mat forward_model_lead_matrix_solution(std::vector<double>& rq){
 
 	/* single dipole implementation */
 
@@ -239,7 +239,7 @@ arma::mat forward_model_gain_matrix_solution(std::vector<double>& rq){
     return gain_matrix;
 }
 
-arma::mat fast_forward_model_gain_matrix_solution(std::vector<double>& rq){
+arma::mat fast_forward_model_lead_matrix_solution(std::vector<double>& rq){
 
 	int num_layers = sigmas.size();
 	int num_sensors = sensor_map.size();
@@ -362,23 +362,25 @@ int main(int argc, char *argv[]){
 	arma::mat montage_matrix(sensor_map.size(),sensor_map.size());
 	montage_matrix =  identiy - (1/sensor_map.size() * arma::ones(sensor_map.size() ,sensor_map.size()));
 
-	arma::mat lfp = fm * fast_forward_model_gain_matrix_solution(rq);
+	std::reverse(rq.begin(),rq.end()); 
+	arma::mat g = fm * montage_matrix * fast_forward_model_lead_matrix_solution(rq);
 	//WTs=(LTsC−1Ls)−1LTsC−1
 	
-	arma::mat lfp_t = lfp.t();
+	arma::mat g_t = g.t();
 	arma::mat cm;
 	cm.load("test_cov.mat", arma::raw_ascii);
-	arma::mat gamma = (lfp_t * (cm.i()) * lfp).i();
+	
 
 	if(is_distortionless){
 		//distorstionless
-		arma::mat ws = (gamma * (lfp_t * (cm.i())));
+		arma::mat gamma = (g_t * (cm.i()) * g).i();
+		arma::mat ws = (gamma * (g_t * (cm.i())));
 		std::cout << ws << std::endl;
 	}
 	else{
-		//weight vector normalized
-		arma::cx_mat gamma_sq_sqrt = compute_gamma_sq_sqrt(gamma);
-		arma::cx_mat ws = (gamma_sq_sqrt * (lfp_t * cm.i()));
+		//weight vector normalized - still need to figure out 
+		arma::mat gamma = (g_t * (cm.i()) * g).i();
+		arma::mat ws = (gamma * (g_t * (cm.i())));
 		std::cout << ws << std::endl;
 	}
 	
