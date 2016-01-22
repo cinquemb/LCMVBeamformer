@@ -70,4 +70,4 @@
 
 
 - Beamforming filter matrix
-	- instead of test dataset, use running mean normalized time series for 100ms for covariance matrix
+	- instead of test dataset, use running mean normalized time series for 100ms for covariance matrix on regions where deactivation greater than some sigma was obsered from photo
