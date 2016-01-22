@@ -71,3 +71,13 @@
 
 - Beamforming filter matrix
 	- instead of test dataset, use running mean normalized time series for 100ms for covariance matrix on regions where deactivation greater than some sigma was obsered from photo
+        - iterate over interest photos
+            - mine photos and check for activation timing
+                - if detected and activation start flag is set, set timestamp end, unset activation start flag
+            - mine photos and check for deactivation timimng
+                -if deactivation is detected, mark time stamp start and set flag to check for activation
+        - save to timestamp deactivation detected file
+
+        - load timestamp deactivation detected file
+            - iterate over running moments and pull time series vectors for data that lies in windows from time stamp files, generate time series of observed instances of deactivation
+
