@@ -63,10 +63,7 @@
         https://en.wikipedia.org/wiki/Gamma_wave
 
 - Wave recognition
-
 	-pattern classifier in spactialtemporal data
-
-	-get idea of percision with 3d Voronoi diagram (distance within threashold? where signal is invariant)
 
 
 - Beamforming filter matrix
