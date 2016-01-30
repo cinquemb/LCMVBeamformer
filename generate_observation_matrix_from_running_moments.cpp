@@ -26,9 +26,11 @@ int num_colums = 128;
 
 int main(int argc, char *argv[]){
 	//load in running moments files for each subject
+	std::string rmts_files = "running_moments_ts.json";	
 
 	//load in binned for each data file into map<int,vector<double>>
-
+	std::string activation_markers = "mined_activation_markers.json";
+	
 	//iterate over subject and for each moment file for specified type of run, generate observation matricies and save files
 
 }
