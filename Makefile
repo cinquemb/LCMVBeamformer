@@ -1,4 +1,4 @@
-CFLAGS= -Wall -Os -O2 -std=gnu++11 -pedantic  /usr/local/lib/libarmadillo.dylib
+CFLAGS= -Wall -Os -O2 -std=gnu++11 -pedantic  /usr/local/lib/libarmadillo.dylib `pkg-config --cflags --libs jsoncpp`
 CPP= ccache clang++
 
 all:
@@ -13,14 +13,12 @@ filter:
 	$(CPP) generate_covariance_matrix.cpp -o generate_covariance_matrix $(CFLAGS)
 
 obs:
-	$(CPP) generate_observation_matrix_from_running_moments.cpp -o gen_obs $
-(CFLAGS)
+	$(CPP) generate_observation_matrix_from_running_moments.cpp -o gen_obs $(CFLAGS)
 
 debug:
 	$(CPP) -g forward_solution.cpp -o forward_solution $(CFLAGS)
 	$(CPP) -g generate_covariance_matrix.cpp -o generate_covariance_matrix $(CFLAGS)
-	$(CPP) generate_observation_matrix_from_running_moments.cpp -o gen_obs $
-(CFLAGS)
+	$(CPP) generate_observation_matrix_from_running_moments.cpp -o gen_obs $(CFLAGS)
 
 clean:
 	rm forward_solution
