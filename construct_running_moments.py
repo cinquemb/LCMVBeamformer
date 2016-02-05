@@ -4,6 +4,7 @@ import re
 import csv
 import codecs
 import math
+import json
 from os.path import isdir, isfile, join
 from subprocess import Popen
 import subprocess
@@ -125,14 +126,17 @@ def is_inverted(photo_file_string, header_files_list, subject_num, run_no):
 		print photo_file_string
 		sys.exit()
 	'''
-	with open(inversion_file, 'r+') as f_ss:
-		reader = csv.reader(f_ss, dialect='excel', delimiter=' ')
-		for k, row in enumerate(reader):
-			if 'inversionFlag_' in ' '.join(row):
-				letter_val = row[-1]
-				#print letter_val
-				return [numb_to_inversion[letter_val], inversion_file]
-
+	try:
+		with open(inversion_file, 'r+') as f_ss:
+			reader = csv.reader(f_ss, dialect='excel', delimiter=' ')
+			for k, row in enumerate(reader):
+				if 'inversionFlag_' in ' '.join(row):
+					letter_val = row[-1]
+					#print letter_val
+					return [numb_to_inversion[letter_val], inversion_file]
+	except:
+		print "FAILED TO FIND HEADERS:", photo_file_string, subject_num
+		return [False, False]
 
 dir_data_name = '/Users/cinquemb/Documents/Startups/GoBlue/Research-Code/png_headers_matched/'
 
@@ -234,9 +238,6 @@ f = open('raw_files_list_with-%s-of-interest-pics.txt' % ('_'.join(query_of_inte
 f.write('\n'.join(filter_people_filt_data_file_list))
 f.close()
 
-		
-print 'Subject #, MCG1/2, Run #, %Direction Opposite EA, %Direction EA, Inversion'
-
 out_raw_data_dict = dict()
 
 for interest_file in filter_people_filt_data_file_list:
@@ -263,6 +264,10 @@ for interest_file in filter_people_filt_data_file_list:
 			#print 'run_no mal', run_no
 
 	inversion, header_file = is_inverted(temp_out_file_string, header_files_list, subject_num, run_no)
+
+	if header_file is False:
+		continue
+
 	raw_file = header_screen_shot_time_dict[header_file]['data']
 
 
