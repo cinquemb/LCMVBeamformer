@@ -51,7 +51,8 @@ int main(int argc, char *argv[]){
 			std::string temp_moment_data_file = sub_file.asString();
 
 			/*
-
+				60 second feedbak window
+				
 			'subject_num': subject_num,
 			'run_name': run_name,
 			'run_no': run_no,
