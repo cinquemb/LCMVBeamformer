@@ -292,6 +292,11 @@ for interest_file in filter_people_filt_data_file_list:
 	is_activated_bins = []
 	activation_start_flag = False
 	activation_start_val = 0
+
+	is_deactivated_bins = []
+	deactivation_start_flag = False
+	deactivation_start_val = 0
+
 	split_region_val = find_y_val_center_init(ofset_width, height)
 
 	for j in range(split_region_val[0], width):
@@ -309,12 +314,22 @@ for interest_file in filter_people_filt_data_file_list:
 			if not activation_start_flag:
 				activation_start_flag = True
 				activation_start_val = i
+
+			if deactivation_start_flag:
+				is_deactivated_bins.append([deactivation_start_val, i-1])
+				deactivation_start_flag = False
+
 			above += 1
 
 		if green_count_below > 0:
 			if activation_start_flag:
-				is_activated_bins.append([activation_start_val, i])
+				is_activated_bins.append([activation_start_val, i-1])
 				activation_start_flag = False
+
+			if not deactivation_start_flag:
+				deactivation_start_flag = True
+				deactivation_start_val = i
+
 			below += 1
 
 		i+=1
@@ -344,7 +359,8 @@ for interest_file in filter_people_filt_data_file_list:
 		'inversion_canoical': 'Deactivation' if inversion else 'Activation',
 		'header_file': header_file,
 		'photo_file': interest_file,
-		'is_activated_bin_sans_norm': is_activated_bins
+		'is_activated_bin_sans_norm': is_activated_bins,
+		'is_deactivated_bin_sans_norm': is_deactivated_bins
 	}
 	#print out_raw_data_dict[raw_file]
 	#print '\n\n\n\n'
