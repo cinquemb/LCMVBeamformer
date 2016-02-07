@@ -112,6 +112,7 @@ int main(int argc, char *argv[]){
 					- divide diff by 4 to get total seconds, divide by .10 to get 100ms bins, add to offset to get end index
 					- push back map of start and end 
 			*/
+
 			std::vector<std::map<std::string, int>> roi_time_series_boundaries;
 			for(auto deac_pix_index : deactivated_bins){
 				int mod_start = deac_pix_index[0].asInt()/4/.10;
@@ -126,7 +127,21 @@ int main(int argc, char *argv[]){
 				roi_time_series_boundaries.push_back(tmp_boundaries);
 			}
 
-			//Json::Value moments_data = load_json(temp_moment_data_file);
+			Json::Value moments_data = load_json(temp_moment_data_file);
+			for(Json::ValueIterator channel_id = moments_data.begin(); channel_id != moments_data.end(); channel_id++){
+				int tmp_chan = atoi(channel_id.key())-2;
+				std::map<std::string, arma::mat> moments_deactivation_samples;
+				for(auto chan_moment : channel_id){
+					for(int i=0; i < chan_moment.size(); i++){
+						//figure out how to properly insert values into sample matrix
+						//moments_deactivation_samples[channel_id.key()]chan_moment[i];
+					}
+				}
+			}
+			/*
+				iterate over each channel
+					- for each moment in file, push back samples from start and end index into sample matrix
+			*/
 		}
 	}
 
