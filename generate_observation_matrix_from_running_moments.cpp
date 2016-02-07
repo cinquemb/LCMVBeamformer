@@ -103,8 +103,6 @@ int main(int argc, char *argv[]){
 			else
 				deactivated_bins = temp_activation_marker_data["is_deactivated_bin_sans_norm"];
 
-			std::cout << deactivated_bins << std::endl;
-
 			/*
 				for each window, 
 					- add one to the endpoint
@@ -114,6 +112,19 @@ int main(int argc, char *argv[]){
 					- divide diff by 4 to get total seconds, divide by .10 to get 100ms bins, add to offset to get end index
 					- push back map of start and end 
 			*/
+			std::vector<std::map<std::string, int>> roi_time_series_boundaries;
+			for(auto deac_pix_index : deactivated_bins){
+				int mod_start = deac_pix_index[0].asInt()/4/.10;
+				int mod_endpoint = (deac_pix_index[1].asInt() + 1)/4/.10;
+				int mod_diff = mod_endpoint - mod_start;
+				int real_endpint = mod_start + mod_diff;
+
+				std::map<std::string, int> tmp_boundaries;
+				tmp_boundaries["start_iter"] = mod_start;
+				tmp_boundaries["end_iter"] = real_endpint;
+				//std::cout << deac_pix_index[0] << "-" << deac_pix_index[1] << "|" << mod_start << "-" << real_endpint << std::endl;
+				roi_time_series_boundaries.push_back(tmp_boundaries);
+			}
 
 			//Json::Value moments_data = load_json(temp_moment_data_file);
 		}
