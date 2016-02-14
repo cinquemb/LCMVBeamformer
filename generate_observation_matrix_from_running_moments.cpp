@@ -14,6 +14,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+int offest_row_index = 300;
+
 //num_colums
 int num_colums = 128;
 
@@ -38,6 +40,8 @@ int main(int argc, char *argv[]){
 
 	//load in binned for each data file into map<int,vector<double>>
 	Json::Value activation_markers = load_json("mined_activation_markers.json");
+
+	std::map<std::string, arma::mat> moments_deactivation_samples;
 	
 	//iterate over subject and for each moment file for specified type of run, generate observation matricies and save files
 	for(auto sub_id : running_moments_binned_series){
@@ -77,7 +81,7 @@ int main(int argc, char *argv[]){
 
 				temp_raw_data_file += "_";
 			}
-
+			std::string temp_raw_data_file_name = temp_raw_data_file;
 			temp_raw_data_file += ".txt";
 			
 
@@ -85,7 +89,7 @@ int main(int argc, char *argv[]){
 			if(temp_activation_marker_data == false)
 				continue;
 			else
-				std::cout << temp_raw_data_file << std::endl;
+				std::cout << "Starting mining: " << temp_raw_data_file << std::endl;
 
 
 			bool temp_inversion_canoical_flag = temp_activation_marker_data["inversion"].asBool();
@@ -97,16 +101,6 @@ int main(int argc, char *argv[]){
 			else
 				deactivated_bins = temp_activation_marker_data["is_deactivated_bin_sans_norm"];
 
-			/*
-				for each window, 
-					- add one to the endpoint
-					- divide init by 4 to get offset index, normalize offset to 100ms bins
-					- subtract endpoint from begining
-					
-					- divide diff by 4 to get total seconds, divide by .10 to get 100ms bins, add to offset to get end index
-					- push back map of start and end 
-			*/
-
 			std::vector<std::map<std::string, int>> roi_time_series_boundaries;
 			for(auto deac_pix_index : deactivated_bins){
 				int mod_start = deac_pix_index[0].asInt()/4/.10;
@@ -117,32 +111,51 @@ int main(int argc, char *argv[]){
 				std::map<std::string, int> tmp_boundaries;
 				tmp_boundaries["start_iter"] = mod_start;
 				tmp_boundaries["end_iter"] = real_endpint;
-				//std::cout << deac_pix_index[0] << "-" << deac_pix_index[1] << "|" << mod_start << "-" << real_endpint << std::endl;
 				roi_time_series_boundaries.push_back(tmp_boundaries);
 			}
 
 			Json::Value moments_data = load_json(temp_moment_data_file);
-			//for each channel
-			std::map<std::string, arma::mat> moments_deactivation_samples;
+			std::map<std::string, arma::mat> tmp_moments_deactivation_samples;
 			for(Json::ValueIterator channel_id = moments_data.begin(); channel_id != moments_data.end(); channel_id++){
 				int tmp_chan = atoi(channel_id.key().asString().c_str())-2;
-				//for each moment for a given channel
 				for(auto tmp_chan_moment : moments_list){
-					//for each column value in each momenet for a given channel
 					auto tmp_chan_moment_data = channel_id->get(tmp_chan_moment,false);
-
-					if(tmp_chan_moment_data == false)
-						continue;
-
-					if(moments_deactivation_samples.count(tmp_chan_moment) == 0){
-						moments_deactivation_samples[tmp_chan_moment] = arma::mat(tmp_chan_moment_data.size(), num_colums);
+					if(tmp_moments_deactivation_samples.count(tmp_chan_moment) == 0){
+						tmp_moments_deactivation_samples[tmp_chan_moment] = arma::mat(tmp_chan_moment_data.size(), num_colums);
 					}
 
 					for(int i=0; i < tmp_chan_moment_data.size(); i++){
-						moments_deactivation_samples[tmp_chan_moment](tmp_chan,i) = tmp_chan_moment_data[i].asFloat();
+						tmp_moments_deactivation_samples[tmp_chan_moment](i,tmp_chan) = tmp_chan_moment_data[i].asFloat();
 					}
 				}
 			}
+
+			std::cout << "Moment matricies loaded, starting slicing/filtering" << std::endl;
+			std::map<std::string, arma::mat> tmp_moments_deactivation_samples_filtered;			
+			for(auto moment_matrix : tmp_moments_deactivation_samples){
+				arma::mat tmp_moment_deactivation_samples_filtered;
+				std::cout << moment_matrix.second.n_rows << " by " << moment_matrix.second.n_cols << std::endl;
+				int total_samples = 0;
+				for(int i=0;i<roi_time_series_boundaries.size();++i){
+					total_samples += roi_time_series_boundaries[i]["end_iter"] - roi_time_series_boundaries[i]["start_iter"];
+					std::cout << "start: " << offest_row_index+roi_time_series_boundaries[i]["start_iter"] << "end: "<< offest_row_index+roi_time_series_boundaries[i]["end_iter"] << std::endl;
+					arma::mat sub_tmp_moment_deactivation_samples_filtered = moment_matrix.second.rows(offest_row_index + roi_time_series_boundaries[i]["start_iter"], offest_row_index + roi_time_series_boundaries[i]["end_iter"]-1);
+					arma::mat tmp_mdsf = arma::join_cols(tmp_moment_deactivation_samples_filtered, sub_tmp_moment_deactivation_samples_filtered);
+					tmp_moment_deactivation_samples_filtered = tmp_mdsf;
+					
+				}
+				tmp_moments_deactivation_samples_filtered[moment_matrix.first] = tmp_moment_deactivation_samples_filtered;
+				std::cout << tmp_moment_deactivation_samples_filtered.n_rows << std::endl;
+				std::cout << "total_samples: "<< total_samples << std::endl;
+			}
+			tmp_moments_deactivation_samples.clear();
+
+			std::cout << "Done slicing/filtering, saving data" << std::endl;
+			for(auto moment_matrix : tmp_moments_deactivation_samples_filtered){
+				moment_matrix.second.save("filtered_obs/"+ temp_raw_data_file_name + "_"+ moment_matrix.first + ".mat", arma::raw_ascii);
+				moment_matrix.second.clear();
+			}
+			std::cout << "Data saved\n\n\n" << std::endl;
 		}
 	}
 }
