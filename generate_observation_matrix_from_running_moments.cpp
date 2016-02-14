@@ -123,9 +123,9 @@ int main(int argc, char *argv[]){
 
 			Json::Value moments_data = load_json(temp_moment_data_file);
 			//for each channel
+			std::map<std::string, arma::mat> moments_deactivation_samples;
 			for(Json::ValueIterator channel_id = moments_data.begin(); channel_id != moments_data.end(); channel_id++){
 				int tmp_chan = atoi(channel_id.key().asString().c_str())-2;
-				std::map<std::string, arma::mat> moments_deactivation_samples;
 				//for each moment for a given channel
 				for(auto tmp_chan_moment : moments_list){
 					//for each column value in each momenet for a given channel
@@ -139,16 +139,10 @@ int main(int argc, char *argv[]){
 					}
 
 					for(int i=0; i < tmp_chan_moment_data.size(); i++){
-						//figure out how to properly insert values into sample matrix
 						moments_deactivation_samples[tmp_chan_moment](tmp_chan,i) = tmp_chan_moment_data[i].asFloat();
 					}
 				}
 			}
-			/*
-				iterate over each channel
-					- for each moment in file, push back samples from start and end index into sample matrix
-			*/
 		}
 	}
-
 }
