@@ -114,6 +114,9 @@ int main(int argc, char *argv[]){
 				roi_time_series_boundaries.push_back(tmp_boundaries);
 			}
 
+			if(roi_time_series_boundaries.size() < 1)
+				continue;
+
 			Json::Value moments_data = load_json(temp_moment_data_file);
 			std::map<std::string, arma::mat> tmp_moments_deactivation_samples;
 			for(Json::ValueIterator channel_id = moments_data.begin(); channel_id != moments_data.end(); channel_id++){
