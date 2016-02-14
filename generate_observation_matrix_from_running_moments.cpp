@@ -14,14 +14,6 @@
 
 #include <boost/algorithm/string.hpp>
 
-const int offset_node = 0;
-
-//window size
-const int window_size = 2048;
-
-//factor to convert biosemi values into uv
-double biosemi_microvoltage_factor = 8192;
-
 //num_colums
 int num_colums = 128;
 
@@ -41,6 +33,8 @@ Json::Value load_json(std::string file){
 int main(int argc, char *argv[]){
 	//load in running moments files for each subject
 	Json::Value running_moments_binned_series = load_json("running_moments_ts.json");	
+
+	std::vector<std::string> moments_list = {"mean","stdv","skew","kurt"};
 
 	//load in binned for each data file into map<int,vector<double>>
 	Json::Value activation_markers = load_json("mined_activation_markers.json");
@@ -130,14 +124,23 @@ int main(int argc, char *argv[]){
 			Json::Value moments_data = load_json(temp_moment_data_file);
 			//for each channel
 			for(Json::ValueIterator channel_id = moments_data.begin(); channel_id != moments_data.end(); channel_id++){
-				int tmp_chan = atoi(channel_id.key())-2;
+				int tmp_chan = atoi(channel_id.key().asString().c_str())-2;
 				std::map<std::string, arma::mat> moments_deactivation_samples;
 				//for each moment for a given channel
-				for(auto chan_moment : channel_id){
+				for(auto tmp_chan_moment : moments_list){
 					//for each column value in each momenet for a given channel
-					for(int i=0; i < chan_moment.size(); i++){
+					auto tmp_chan_moment_data = channel_id->get(tmp_chan_moment,false);
+
+					if(tmp_chan_moment_data == false)
+						continue;
+
+					if(moments_deactivation_samples.count(tmp_chan_moment) == 0){
+						moments_deactivation_samples[tmp_chan_moment] = arma::mat(tmp_chan_moment_data.size(), num_colums);
+					}
+
+					for(int i=0; i < tmp_chan_moment_data.size(); i++){
 						//figure out how to properly insert values into sample matrix
-						//moments_deactivation_samples[tmp_chan][i] = chan_moment[i];
+						moments_deactivation_samples[tmp_chan_moment](tmp_chan,i) = tmp_chan_moment_data[i].asFloat();
 					}
 				}
 			}
