@@ -128,13 +128,16 @@ int main(int argc, char *argv[]){
 			}
 
 			Json::Value moments_data = load_json(temp_moment_data_file);
+			//for each channel
 			for(Json::ValueIterator channel_id = moments_data.begin(); channel_id != moments_data.end(); channel_id++){
 				int tmp_chan = atoi(channel_id.key())-2;
 				std::map<std::string, arma::mat> moments_deactivation_samples;
+				//for each moment for a given channel
 				for(auto chan_moment : channel_id){
+					//for each column value in each momenet for a given channel
 					for(int i=0; i < chan_moment.size(); i++){
 						//figure out how to properly insert values into sample matrix
-						//moments_deactivation_samples[channel_id.key()]chan_moment[i];
+						//moments_deactivation_samples[tmp_chan][i] = chan_moment[i];
 					}
 				}
 			}
