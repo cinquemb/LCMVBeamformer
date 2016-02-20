@@ -33,7 +33,7 @@ INPUTS (Required):
               factors (Required if Berg Method is commanded)             3 x 1
 	   lam_berg_in: User specified initial value for Berg magnitude
 */
-
+bool is_script_mode = true;
 const long double PI = acos(-1.0L);
 
 double mill_to_meter = 1000.00;
@@ -352,6 +352,9 @@ arma::cx_mat compute_gamma_sq_sqrt(arma::mat& gamma){
 int main(int argc, char *argv[]){
 
 	bool is_distortionless = true;
+	std::string out_file_name;
+	if(is_script_mode)
+		out_file_name = (std::string)argv[1];
 
 	std::vector<double> rq {-6,-60,18};
 	arma::mat fm;
@@ -375,13 +378,19 @@ int main(int argc, char *argv[]){
 		//distorstionless
 		arma::mat gamma = (g_t * (cm.i()) * g).i();
 		arma::mat ws = (gamma * (g_t * (cm.i())));
-		std::cout << ws << std::endl;
+		if(is_script_mode)
+			ws.save(out_file_name, arma::raw_ascii);
+		else
+			std::cout << ws << std::endl;
 	}
 	else{
 		//weight vector normalized - still need to figure out 
 		arma::mat gamma = (g_t * (cm.i()) * g).i();
 		arma::mat ws = (gamma * (g_t * (cm.i())));
-		std::cout << ws << std::endl;
+		if(is_script_mode)
+			ws.save(out_file_name, arma::raw_ascii);
+		else
+			std::cout << ws << std::endl;
 	}
 	
 	return 0;

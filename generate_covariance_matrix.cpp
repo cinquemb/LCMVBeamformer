@@ -23,6 +23,8 @@ int num_colums = 128;
 
 bool test_mode = true;
 
+bool matrix_from_moment = true;
+
 std::vector<arma::mat> logcosh(arma::mat& x){
     arma::mat gx = arma::tanh(x);
     arma::mat g_x(gx.n_rows, 1);
@@ -75,13 +77,16 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
         arma::mat t_w1 = gwtx_xt - g_wtx_w;
 
         arma::mat w1 = sym_decorrelation(t_w1);
-        std::cout << t_w1 << std::endl;
+        //std::cout << t_w1 << std::endl;
 
         arma::mat w1_wt = w1 * w.t();
         double lim = arma::max(arma::abs((arma::abs((w1_wt.diag())) -1)));
         std::cout << "lim: " << lim << " tolerance: "  << tolerance << std::endl;
         if(lim < tolerance)
             break;
+
+        if(i == max_iter-1)
+            std::cout << "max iteration excceeded" << std::endl;
         w = w1;   
     }
     return w;
@@ -152,7 +157,13 @@ int main(int argc, char *argv[]) {
     if(test_mode)
         std::cout << "test mode" << std::endl;
 	std::string file_name(argv[1]);
-	arma::mat sample_matrix = matrix_from_file_samples(file_name);
+	arma::mat sample_matrix;
+
+    if(matrix_from_moment)
+        sample_matrix.load(file_name, arma::raw_ascii);
+    else
+        sample_matrix = matrix_from_file_samples(file_name);
+
     arma::mat sample_matrix_t = sample_matrix.t();
     double smm = arma::mean(arma::mean(sample_matrix));
     arma::mat sample_matrix_norm = sample_matrix - smm;
