@@ -21,7 +21,7 @@ double biosemi_microvoltage_factor = 8192;
 //num_colums
 int num_colums = 128;
 
-bool test_mode = true;
+bool test_mode = false;
 
 bool matrix_from_moment = true;
 
