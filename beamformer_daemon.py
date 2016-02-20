@@ -8,10 +8,15 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from scipy.stats.stats import pearsonr
 
-#find . -maxdepth 3 -type f -name '*_mean*.png' -print0 | xargs -0n 100000 open
-#find . -maxdepth 3 -type f -name '*_stdv*.png' -print0 | xargs -0n 100000 open
-#find . -maxdepth 3 -type f -name '*_skew*.png' -print0 | xargs -0n 100000 open
-#find . -maxdepth 3 -type f -name '*_kurt*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_*mean*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_*stdv*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_*skew*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_*kurt*.png' -print0 | xargs -0n 100000 open
+
+#find . -maxdepth 3 -type f -name '*svds*_mean*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svds*_stdv*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svds*_skew*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svds*_kurt*.png' -print0 | xargs -0n 100000 open
 
 #for each moment concat moments for subject, generate temp matrix file
 moments_list = ['mean','stdv','skew','kurt']
@@ -19,7 +24,7 @@ moments_list = ['mean','stdv','skew','kurt']
 # svd with log(cosh) or svds with gibbs free energy
 decomp = 'svd'
 
-selected_moment = 1
+selected_moment = 0
 
 def get_stdv(values, mean):
 	dif_sqaured = []
@@ -146,14 +151,15 @@ for key, value in out_beaformer_weight_file_map.iteritems():
 		print 'correlation for channel %s: %s' % (dim, chan_correlation)
 		out_beaformer_weight_file_png = data_file_path + "/" + key + "/" + key +"_beamformer_weights_" +decomp +"_" +moments_list[selected_moment] +"_dim_"+ str(dim) + ".png"
 
-		fig = plt.figure(num=None, figsize=(25, 15), dpi=20, facecolor='w', edgecolor='k')
-		plt.plot([x for x in range(len(temp_dim_exp))],temp_dim_exp, hold=True, color='red')
-		plt.plot([x for x in range(len(temp_dim_exp))], temp_dim_sub_exp, color='blue')
-		plt.ylim(-.05,.05)
-		plt.xlim(0,128)
-		plt.xlabel("lead index")
-		plt.ylabel("weight values")
-		fig.savefig(out_beaformer_weight_file_png)
-		plt.close()
+		if not isfile(out_beaformer_weight_file_png):
+			fig = plt.figure(num=None, figsize=(25, 15), dpi=20, facecolor='w', edgecolor='k')
+			plt.plot([x for x in range(len(temp_dim_exp))],temp_dim_exp, hold=True, color='red')
+			plt.plot([x for x in range(len(temp_dim_exp))], temp_dim_sub_exp, color='blue')
+			plt.ylim(-.05,.05)
+			plt.xlim(0,128)
+			plt.xlabel("lead index")
+			plt.ylabel("weight values")
+			fig.savefig(out_beaformer_weight_file_png)
+			plt.close()
 	print 'Plot created for', key
 	print '\n\n'
