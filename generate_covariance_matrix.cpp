@@ -21,7 +21,7 @@ double biosemi_microvoltage_factor = 8192;
 //num_colums
 int num_colums = 128;
 
-bool test_mode = false;
+bool test_mode = true;
 
 bool matrix_from_moment = true;
 
@@ -96,8 +96,20 @@ arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
     //column normalize matrix
     int n_components = std::min({sample_matrix.n_rows, sample_matrix.n_cols});
     arma::mat col_norm_sample_matrix = sample_matrix;
-    for(int i=0;i<n_components;++i)
-        col_norm_sample_matrix.row(i) = sample_matrix.row(i) - arma::mean(sample_matrix.row(i));
+
+    if(!test_mode){
+        for(int i=0;i<n_components;++i)
+            col_norm_sample_matrix.row(i) = sample_matrix.row(i) - arma::mean(sample_matrix.row(i));
+    }else{
+        for(int i=0;i<sample_matrix.n_cols;++i){
+            double col_min = arma::min(sample_matrix.col(i));
+            double col_max = arma::max(sample_matrix.col(i));
+            double col_diff = col_max - col_min;
+            col_norm_sample_matrix.col(i) = (sample_matrix.col(i) - col_min)/col_diff;
+        }
+            
+    }
+    
 
     arma::mat u;
     arma::vec simga_matrix;
@@ -107,12 +119,14 @@ arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
         arma::svd(u, simga_matrix, v_matrix, col_norm_sample_matrix);
     else
         arma::svds(u, simga_matrix, v_matrix, arma::sp_mat(col_norm_sample_matrix), n_components);
-
+    /*
     arma::mat k(u.n_rows,u.n_cols);
     for(int i=0;i<n_components;++i)
         k.col(i) = u.col(i)/simga_matrix(i);
 
     arma::mat whiten_matrix = (k * col_norm_sample_matrix) * std::sqrt(sample_matrix.n_cols);
+    */
+    arma::mat whiten_matrix = u * v_matrix.t();
     return whiten_matrix;
 }
 
@@ -165,8 +179,16 @@ int main(int argc, char *argv[]) {
         sample_matrix = matrix_from_file_samples(file_name);
 
     arma::mat sample_matrix_t = sample_matrix.t();
-    double smm = arma::mean(arma::mean(sample_matrix));
-    arma::mat sample_matrix_norm = sample_matrix - smm;
+    //double smm = arma::mean(arma::mean(sample_matrix));
+    double smmin = arma::min(arma::min(sample_matrix));
+    double smmax = arma::max(arma::max(sample_matrix));
+    double sm_range = smmax - smmin;
+
+    //arma::mat sample_matrix_norm = sample_matrix - smm;
+
+    arma::mat sample_matrix_norm = (sample_matrix - smmin)/sm_range;
+
+
     arma::mat sample_matrix_norm_t = sample_matrix_norm.t();
     arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_norm_t);
     
