@@ -94,23 +94,8 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
 }
 
 arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
-    //column normalize matrix
     int n_components = std::min({sample_matrix.n_rows, sample_matrix.n_cols});
     arma::mat col_norm_sample_matrix = sample_matrix;
-
-    if(!test_mode){
-        for(int i=0;i<n_components;++i)
-            col_norm_sample_matrix.row(i) = sample_matrix.row(i) - arma::mean(sample_matrix.row(i));
-    }else{
-        for(int i=0;i<sample_matrix.n_cols;++i){
-            double col_min = arma::min(sample_matrix.col(i));
-            double col_max = arma::max(sample_matrix.col(i));
-            double col_diff = col_max - col_min;
-            col_norm_sample_matrix.col(i) = (sample_matrix.col(i) - col_min)/col_diff;
-        }
-            
-    }
-    
 
     arma::mat u;
     arma::vec simga_matrix;
@@ -120,13 +105,7 @@ arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
         arma::svd(u, simga_matrix, v_matrix, col_norm_sample_matrix);
     else
         arma::svds(u, simga_matrix, v_matrix, arma::sp_mat(col_norm_sample_matrix), n_components);
-    /*
-    arma::mat k(u.n_rows,u.n_cols);
-    for(int i=0;i<n_components;++i)
-        k.col(i) = u.col(i)/simga_matrix(i);
-
-    arma::mat whiten_matrix = (k * col_norm_sample_matrix) * std::sqrt(sample_matrix.n_cols);
-    */
+    
     arma::mat whiten_matrix = u * v_matrix.t();
     return whiten_matrix;
 }
