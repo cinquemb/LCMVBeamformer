@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <chrono>
 
 #include <armadillo>
 
@@ -178,13 +179,11 @@ int main(int argc, char *argv[]) {
     else
         sample_matrix = matrix_from_file_samples(file_name);
 
+    auto init_start = std::chrono::high_resolution_clock::now();
     arma::mat sample_matrix_t = sample_matrix.t();
-    //double smm = arma::mean(arma::mean(sample_matrix));
     double smmin = arma::min(arma::min(sample_matrix));
     double smmax = arma::max(arma::max(sample_matrix));
     double sm_range = smmax - smmin;
-
-    //arma::mat sample_matrix_norm = sample_matrix - smm;
 
     arma::mat sample_matrix_norm = (sample_matrix - smmin)/sm_range;
 
@@ -192,10 +191,17 @@ int main(int argc, char *argv[]) {
     arma::mat sample_matrix_norm_t = sample_matrix_norm.t();
     arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_norm_t);
     
-    //arma::arma_rng::set_seed(42);
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
+    auto init_end = std::chrono::high_resolution_clock::now();
+    auto init_difftime = init_end - init_start;
+    std::cout << "init preprocess difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(init_difftime).count() << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
     arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 5e-2);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto difftime = end - start;
+    std::cout << "fast_ica_parallel difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(difftime).count() << std::endl;
 
 	covmat.save("test_cov.mat", arma::raw_ascii);
     ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
