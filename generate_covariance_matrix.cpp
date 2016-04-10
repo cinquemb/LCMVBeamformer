@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
     //arma::arma_rng::set_seed(42);
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     arma::mat covmat = arma::cov(sample_matrix_norm);
-    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 1e-003);
+    arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 5e-2);
 
 	covmat.save("test_cov.mat", arma::raw_ascii);
     ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
