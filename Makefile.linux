@@ -1,0 +1,28 @@
+CXX=g++
+CFLAGS= -Wall -Os -O3 -std=gnu++11 -pedantic -I${HOME}/.local/include  
+LDLIBS= /opt/OpenBLAS/lib/libopenblas.so /usr/local/lib64/libarmadillo.so
+LDFLAGS= -L${HOME}/.local/lib
+
+all:
+	$(CXX) $(CFLAGS) forward_solution.cpp -o forward_solution $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CFLAGS) generate_covariance_matrix.cpp -o generate_covariance_matrix $(LDFLAGS) $(LDLIBS)
+	$(CXX) $(CFLAGS) generate_observation_matrix_from_running_moments.cpp -o gen_obs $(LDFLAGS) $(LDLIBS)
+
+forward:
+	$(CXX) $(CFLAGS) forward_solution.cpp -o forward_solution $(LDFLAGS) $(LDLIBS)
+
+filter:
+	$(CXX) $(CFLAGS) generate_covariance_matrix.cpp -o generate_covariance_matrix $(LDFLAGS) $(LDLIBS)
+
+obs:
+	$(CXX) $(CFLAGS) generate_observation_matrix_from_running_moments.cpp -o gen_obs $(LDFLAGS) $(LDLIBS)
+
+debug:
+	$(CXX) -v -g $(CFLAGS) forward_solution.cpp -o forward_solution $(LDFLAGS) $(LDLIBS)
+	$(CXX) -v -g $(CFLAGS) generate_covariance_matrix.cpp -o generate_covariance_matrix $(LDFLAGS) $(LDLIBS)
+	$(CXX) -v -g $(CFLAGS) generate_observation_matrix_from_running_moments.cpp -o gen_obs $(LDFLAGS) $(LDLIBS)
+
+clean:
+	rm forward_solution
+	rm generate_covariance_matrix
+	rm gen_obs
