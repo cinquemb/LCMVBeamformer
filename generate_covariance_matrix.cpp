@@ -179,23 +179,32 @@ int main(int argc, char *argv[]) {
     else
         sample_matrix = matrix_from_file_samples(file_name);
 
-    auto init_start = std::chrono::high_resolution_clock::now();
-    arma::mat sample_matrix_t = sample_matrix.t();
+    auto normalization_start = std::chrono::high_resolution_clock::now();
+    //arma::mat sample_matrix_t = sample_matrix.t();
     double smmin = arma::min(arma::min(sample_matrix));
     double smmax = arma::max(arma::max(sample_matrix));
     double sm_range = smmax - smmin;
 
     arma::mat sample_matrix_norm = (sample_matrix - smmin)/sm_range;
+    auto normalization_end = std::chrono::high_resolution_clock::now();
+    auto normalization_difftime = normalization_end - normalization_start;
+    std::cout << "normalization difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(normalization_difftime).count() << std::endl;
 
 
     arma::mat sample_matrix_norm_t = sample_matrix_norm.t();
+    auto whiten_start = std::chrono::high_resolution_clock::now();
     arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_norm_t);
+    auto whiten_end = std::chrono::high_resolution_clock::now();
+    auto whiten_difftime = whiten_end - whiten_start;
+    std::cout << "whitten difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(whiten_difftime).count() << std::endl;
     
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
+    auto covmat_start = std::chrono::high_resolution_clock::now();
     arma::mat covmat = arma::cov(sample_matrix_norm);
-    auto init_end = std::chrono::high_resolution_clock::now();
-    auto init_difftime = init_end - init_start;
-    std::cout << "init preprocess difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(init_difftime).count() << std::endl;
+    auto covmat_end = std::chrono::high_resolution_clock::now();
+    auto covmat_difftime = covmat_end - covmat_start;
+    std::cout << "covmat difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(covmat_difftime).count() << std::endl;
+    
 
     auto start = std::chrono::high_resolution_clock::now();
     arma::mat ica_matrix = fast_ica_parallel(whiten_matrix, w_init, 200, 5e-2);
