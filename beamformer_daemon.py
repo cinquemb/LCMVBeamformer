@@ -14,16 +14,16 @@ import numpy as np
 #find . -maxdepth 3 -type f -name '*svd_*skew*.png' -print0 | xargs -0n 100000 open
 #find . -maxdepth 3 -type f -name '*svd_*kurt*.png' -print0 | xargs -0n 100000 open
 
-#find . -maxdepth 3 -type f -name '*svds*_mean*.png' -print0 | xargs -0n 100000 open
-#find . -maxdepth 3 -type f -name '*svds*_stdv*.png' -print0 | xargs -0n 100000 open
-#find . -maxdepth 3 -type f -name '*svds*_skew*.png' -print0 | xargs -0n 100000 open
-#find . -maxdepth 3 -type f -name '*svds*_kurt*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_whitten_diff_5*_mean*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_whitten_diff_5*_stdv*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_whitten_diff_5*_skew*.png' -print0 | xargs -0n 100000 open
+#find . -maxdepth 3 -type f -name '*svd_whitten_diff_5*_kurt*.png' -print0 | xargs -0n 100000 open
 
 #for each moment concat moments for subject, generate temp matrix file
 moments_list = ['mean','stdv','skew','kurt']
 
 # svd with log(cosh) or svds with gibbs free energy
-decomp = 'svd_whitten_diff_4'
+decomp = 'svd_whitten_diff_5'
 
 def get_stdv(values, mean):
 	dif_sqaured = []
