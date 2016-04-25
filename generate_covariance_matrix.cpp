@@ -19,7 +19,7 @@ std::vector<arma::mat> logcosh(arma::mat& x){
     return gx_dgx;
 };
 
-arma::mat sym_decorrelation(arma::mat& w){
+arma::mat whiten_sym_decorrelation(arma::mat& w){
     //W <- (W * W.T) ^{-1/2} * W or W = U * V.t()
     int n_components = std::min({w.n_rows, w.n_cols});
     arma::mat u, v_matrix; 
@@ -29,7 +29,7 @@ arma::mat sym_decorrelation(arma::mat& w){
 }
 
 arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, double tolerance){
-    arma::mat w = sym_decorrelation(w_init);
+    arma::mat w = whiten_sym_decorrelation(w_init);
     double p_ = w_init.n_cols;
     for(int i=0;i<max_iter;++i){
         arma::mat wx = w * x;
@@ -39,7 +39,7 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
         arma::mat g_wtx_w = arma::repmat(gx_dgx[1], 1, gx_dgx[1].n_rows) * w;
         arma::mat t_w1 = gwtx_xt - g_wtx_w;
 
-        arma::mat w1 = sym_decorrelation(t_w1);
+        arma::mat w1 = whiten_sym_decorrelation(t_w1);
         //std::cout << t_w1 << std::endl;
 
         arma::mat w1_wt = w1 * w.t();
@@ -55,18 +55,6 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
     return w;
 }
 
-arma::mat whiten_matrix_samples(arma::mat& sample_matrix){
-    int n_components = std::min({sample_matrix.n_rows, sample_matrix.n_cols});
-    arma::mat col_norm_sample_matrix = sample_matrix;
-
-    arma::mat u, v_matrix;
-    arma::vec simga_matrix;
-    arma::svds(u, simga_matrix, v_matrix, arma::sp_mat(col_norm_sample_matrix), n_components);
-
-    arma::mat whiten_matrix = u * v_matrix.t();
-    return whiten_matrix;
-}
-
 int main(int argc, char *argv[]) {
 	std::string file_name(argv[1]);
 	arma::mat sample_matrix;
@@ -79,7 +67,6 @@ int main(int argc, char *argv[]) {
     double smmin = arma::min(arma::min(sample_matrix));
     double smmax = arma::max(arma::max(sample_matrix));
     double sm_range = smmax - smmin;
-
     arma::mat sample_matrix_norm = (sample_matrix - smmin)/sm_range;
     #ifdef IS_TIMER_ON
     auto normalization_end = std::chrono::high_resolution_clock::now();
@@ -87,27 +74,31 @@ int main(int argc, char *argv[]) {
     std::cout << "normalization difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(normalization_difftime).count() << std::endl;
     #endif
 
-    arma::mat sample_matrix_norm_t = sample_matrix_norm.t();
-    #ifdef IS_TIMER_ON
-    auto whiten_start = std::chrono::high_resolution_clock::now();
-    #endif
-    arma::mat whiten_matrix = whiten_matrix_samples(sample_matrix_norm_t);
-    #ifdef IS_TIMER_ON
-    auto whiten_end = std::chrono::high_resolution_clock::now();
-    auto whiten_difftime = whiten_end - whiten_start;
-    std::cout << "whitten difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(whiten_difftime).count() << std::endl;
-    #endif
-    
-    arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     #ifdef IS_TIMER_ON
     auto covmat_start = std::chrono::high_resolution_clock::now();
     #endif
     arma::mat covmat = arma::cov(sample_matrix_norm);
+    covmat.save("test_cov.mat", arma::raw_ascii);
     #ifdef IS_TIMER_ON
     auto covmat_end = std::chrono::high_resolution_clock::now();
     auto covmat_difftime = covmat_end - covmat_start;
     std::cout << "covmat difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(covmat_difftime).count() << std::endl;
     #endif
+    covmat.clear();
+    
+    arma::mat sample_matrix_norm_t = sample_matrix_norm.t();
+    sample_matrix_norm.clear();
+    #ifdef IS_TIMER_ON
+    auto whiten_start = std::chrono::high_resolution_clock::now();
+    #endif
+    arma::mat whiten_matrix = whiten_sym_decorrelation(sample_matrix_norm_t);
+    #ifdef IS_TIMER_ON
+    auto whiten_end = std::chrono::high_resolution_clock::now();
+    auto whiten_difftime = whiten_end - whiten_start;
+    std::cout << "whiten difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(whiten_difftime).count() << std::endl;
+    #endif
+    
+    arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
     
     #ifdef IS_TIMER_ON
     auto start = std::chrono::high_resolution_clock::now();
@@ -118,8 +109,7 @@ int main(int argc, char *argv[]) {
     auto difftime = end - start;
     std::cout << "fast_ica_parallel difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(difftime).count() << std::endl;
     #endif
-
-	covmat.save("test_cov.mat", arma::raw_ascii);
+	
     ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
 	return 0;
 }

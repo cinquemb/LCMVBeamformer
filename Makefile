@@ -18,7 +18,7 @@
 
 #/usr/local/lib/libjsoncpp.a
 
-CFLAGS= -Wall -Os -O2 -std=gnu++11 -pedantic  /usr/local/lib/libarmadillo.dylib
+CFLAGS= -Wall -Os -O3 -std=gnu++11 -pedantic  /usr/local/lib/libarmadillo.dylib
 JSONCPP=`pkg-config --cflags --libs jsoncpp`
 CPP= ccache clang++
 
