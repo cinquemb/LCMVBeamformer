@@ -40,17 +40,17 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
         arma::mat t_w1 = gwtx_xt - g_wtx_w;
 
         arma::mat w1 = whiten_sym_decorrelation(t_w1);
-        //std::cout << t_w1 << std::endl;
 
         arma::mat w1_wt = w1 * w.t();
         double lim = arma::max(arma::abs((arma::abs((w1_wt.diag())) -1)));
         std::cout << "lim: " << lim << " tolerance: "  << tolerance << std::endl;
+        w = w1;
         if(lim < tolerance)
             break;
 
         if(i == max_iter-1)
             std::cout << "max iteration excceeded" << std::endl;
-        w = w1;   
+           
     }
     return w;
 }
@@ -58,7 +58,6 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
 int main(int argc, char *argv[]) {
 	std::string file_name(argv[1]);
 	arma::mat sample_matrix;
-
     sample_matrix.load(file_name, arma::raw_ascii);
 
     #ifdef IS_TIMER_ON
@@ -97,8 +96,21 @@ int main(int argc, char *argv[]) {
     auto whiten_difftime = whiten_end - whiten_start;
     std::cout << "whiten difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(whiten_difftime).count() << std::endl;
     #endif
-    
+
+    #ifdef IS_TIMER_ON
+    auto converge_check_start = std::chrono::high_resolution_clock::now();
+    #endif
+    arma::mat whiten_matrix_whiten_matrix_t = whiten_matrix * whiten_matrix.t();
+    double lim = arma::max(arma::abs((arma::abs((whiten_matrix_whiten_matrix_t.diag())) -1)));
+    #ifdef IS_TIMER_ON
+    auto converge_check_end = std::chrono::high_resolution_clock::now();
+    auto converge_check_difftime = converge_check_end - converge_check_start;
+    std::cout << "converge_check difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(converge_check_difftime).count() << std::endl;
+    #endif
+    std::cout << "converge_check_lim: " << lim << " tolerance: "  << 5e-2 << std::endl;
+
     arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
+    
     
     #ifdef IS_TIMER_ON
     auto start = std::chrono::high_resolution_clock::now();
@@ -109,7 +121,9 @@ int main(int argc, char *argv[]) {
     auto difftime = end - start;
     std::cout << "fast_ica_parallel difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(difftime).count() << std::endl;
     #endif
+
+
 	
-    ica_matrix.save("ica_matrix.mat", arma::raw_ascii);
+    whiten_matrix.save("ica_matrix.mat", arma::raw_ascii);
 	return 0;
 }
