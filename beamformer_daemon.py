@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 import os
 import sys
 from os.path import isdir, isfile, join
@@ -23,7 +24,7 @@ import numpy as np
 moments_list = ['mean','stdv','skew','kurt']
 
 # svd with log(cosh) or svds with gibbs free energy
-decomp = 'svds_whitten_diff_7'
+decomp = 'fixed_svds_whitten_diff_2_scaling_1'
 
 def get_stdv(values, mean):
 	dif_sqaured = []
@@ -127,12 +128,13 @@ for m_key in range(0, len(moments_list)):
 	out_beaformer_weight_file_map = dict()
 	for key,value in people_moment_dict.iteritems():
 		print 'Generating beamformer weights for subject %s' % (key)
+		out_ica_cov_file = data_file_path + "/" + key + "/" +decomp +"_" +moments_list[selected_moment] + "_"
 		out_beaformer_weight_file = data_file_path + "/" + key + "/beamformer_weights_" +decomp +"_" +moments_list[selected_moment] +".mat"
 		out_beaformer_weight_file_map[key] = out_beaformer_weight_file
 
 		if not isfile(out_beaformer_weight_file):
-			cmd1 = "./generate_covariance_matrix %s" % (value)
-			cmd2 = "./forward_solution %s" % (out_beaformer_weight_file)
+			cmd1 = "./generate_covariance_matrix %s %s" % (value, out_ica_cov_file)
+			cmd2 = "./forward_solution %s %s" % (out_beaformer_weight_file, out_ica_cov_file)
 			#run generate_covariance_matrix with concated moment file
 			r_cmd1 = execute_cmd(cmd1)
 
@@ -151,11 +153,13 @@ for m_key in range(0, len(moments_list)):
 		sub_exp_bwf_data = filter(None,open(value).read().split('\n'))
 		print '\n\n'
 		print 'Generating plot for', key
+		temp_correlation_sum = 0.0
 		for dim in range(0,3):
 			temp_dim_exp = map(float, exp_bwf_data[dim].split('\t'))
 			temp_sub_exp_bwf_data = filter(None,sub_exp_bwf_data[dim].split(' '))
 			temp_dim_sub_exp = map(float,temp_sub_exp_bwf_data)
-			chan_correlation = get_correlation(list(abs(np.array((temp_dim_exp)))), list(abs(np.array((temp_dim_sub_exp)))))
+			chan_correlation = get_correlation(list(np.square(np.array((temp_dim_exp)))), list(np.square(np.array((temp_dim_sub_exp)))))
+			temp_correlation_sum += chan_correlation
 
 			tmp_dim = temp_sum[dim]
 			temp_sum[dim] = list(np.sum([tmp_dim,temp_dim_sub_exp], axis=0))
@@ -174,13 +178,17 @@ for m_key in range(0, len(moments_list)):
 				plt.close()
 
 		file_count += 1
+		print '∇^2 correlation: %s' % (temp_correlation_sum)
 		print 'Plot created for', key
 		print '\n\n'
 
+	
 	for key,value in temp_sum.iteritems():
 		temp_dim_exp = map(float, exp_bwf_data[key].split('\t'))
 		tmp_data = list(value)
 		for x in range(0,len(tmp_data)):
 			tmp_data[x] = tmp_data[x]/float(file_count)
-		chan_correlation = get_correlation(list(abs(np.array((temp_dim_exp)))), list(abs(np.array((tmp_data)))))
+		chan_correlation = get_correlation(list(np.square(np.array((temp_dim_exp)))), list(np.square(np.array((tmp_data)))))
+
 		print 'avg correlation for channel %s: %s' % (key, chan_correlation)
+	

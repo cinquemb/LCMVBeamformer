@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <functional>
 #include <map>
-
 #include <armadillo>
 
 /*
@@ -49,7 +48,6 @@ std::vector<double> sigmas = {.33, .0042, .33};
 
 /*	radii fromm innermost to outer (R) */
 std::vector<double> radii = {(71.00/mill_to_meter), (79.00/mill_to_meter), (85.00/mill_to_meter)};
-
 
 
 /* eeg sensors in x,y,z using map (RE) */
@@ -107,136 +105,6 @@ std::vector<arma::mat> dlegpoly(int&n, arma::mat& x){
 
 	std::vector<arma::mat> dlegpoly{p, dp1};
 	return dlegpoly;
-}
-
-arma::mat forward_model_lead_matrix_solution(std::vector<double>& rq){
-
-	/* single dipole implementation */
-
-	int num_dims = 3;
-	int num_layers = sigmas.size();
-	int num_sensors = sensor_map.size();
-	arma::mat arma_re(num_sensors, num_dims);// 128 by 3
-	arma::mat gain_matrix = arma::zeros(num_sensors, num_layers);
-	std::vector<double> sigma_ratio(num_layers-1, 0);
-	std::vector<double> sigma_ratio_sm1(num_layers-1, 0);
-	double out_sphere_denom = 4.0 * PI * sigmas[num_layers-1];
-	int nmax = 128; //Legendre Series Terms
-
-	/*
-		NL = length(R);                          % # of concentric sphere layers
-		P = size(Rq,1);
-		M = size(Re,1);
-		L is 3 x nL, each column a source location
-		Rq = L'; // nL x 3 ( 1 by 3)
-		Re_mag = R(NL);         %(PxM)
-	    Re_mag_sq = repmat(R(NL)*R(NL),P,M);  %(PxM)
-	    Rq_mag = rownorm(Rq);                 %(Px1)
-	    Rq_mag_sq = Rq_mag.*Rq_mag;           %(Px1)
-	    Re_dot_Rq = Rq*Re';                   %(PxM)
-	*/
-
-
-
-	arma::mat arma_rq = arma::rowvec(rq);
-	arma_rq = arma_rq/mill_to_meter;
-	arma::mat arma_rq_mag = row_norm(arma_rq); //(Px1) (1 by 1)
-
-	double re_mag = radii[num_layers-1];
-
-	for(int i=0; i< num_sensors; ++i)
-		arma_re.row(i) =  arma::rowvec(biosemi_coords_to_mni(sensor_map[i]));
-
-	arma_re = arma_re/mill_to_meter;
-	
-	arma::mat arma_re_n = arma_re/arma::max(arma::max(arma_re));
-
-	arma::mat arma_rq_mag_mat = arma::repmat(arma_rq_mag, 1,3);
-	arma::mat arma_rq_n = arma_rq / arma_rq_mag_mat;
-
-	for(int i=0; i<num_layers-1;++i){
-		sigma_ratio[i] = sigmas[i]/sigmas[i+1]; //s = sigma_ratio
-		sigma_ratio_sm1[i] = sigma_ratio[i] -1;
-	}
-		
-	arma::mat radius_ratio = re_mag / ((arma::mat)arma::rowvec(radii)); //radius ratio
-	arma::mat inv_radius_ratio = ((arma::mat)arma::rowvec(radii)) / re_mag;
-
-	std::vector<double> twonp1(nmax,0);
-	std::vector<double> n_vec(nmax,0);
-	std::vector<double> f_n(nmax,0);
-	for(int i=1; i<nmax+1;++i){
-		twonp1[i-1] = (2*i) + 1;
-		n_vec[i-1] = i;
-	}
-
-	arma::mat arma_twonp1 = arma::colvec(twonp1);	
-
-	for(int i=0; i<nmax; ++i){
-		double np1 = i + 1;
-		arma::mat mc(2,2, arma::fill::eye);
-		for(int j=1; j<num_layers-1; j++){
-			arma::mat temp_rhs;
-			temp_rhs << i+ (np1*sigma_ratio[j]) << np1 * sigma_ratio_sm1[j] * std::pow(radius_ratio[j], twonp1[i]) << arma::endr
-			<< (i * sigma_ratio_sm1[j] * std::pow(inv_radius_ratio[j], twonp1[i])) << (np1 + (i*sigma_ratio[j])) << arma::endr;
-			mc *= temp_rhs;
-		}
-		arma::mat temp_lhs;
-		temp_lhs << (i * sigma_ratio_sm1[0] * std::pow(inv_radius_ratio[0], twonp1[i])) << (np1 + (i*sigma_ratio[0])) << arma::endr;
-		mc.row(1) = temp_lhs * mc;
-		mc /= std::pow(twonp1[i], num_layers-1);
-
-		double denom_f_n = ((i * mc(1,1)) + (np1 * mc(1,0)));
-		if(denom_f_n == 0)
-			f_n[i] = 0;
-		else
-			f_n[i] = i/ denom_f_n;
-	}
-	arma::mat arma_f_n = arma::colvec(f_n);
-
-	arma::mat onevec = arma::ones(num_sensors, 1);
-	arma::mat arma_n_vec_t = (arma::rowvec(n_vec)).t();
-
-	arma::mat arma_wtemp = ((arma_twonp1 / arma_n_vec_t) % arma_f_n) / (out_sphere_denom * std::pow(radii[num_layers-1], 2));
-	
-	arma::mat arma_n_vec_t_m_1 = arma_n_vec_t - 1;
-	arma::mat ratio = arma_n_vec_t_m_1;
-
-	arma_rq_n.resize(num_sensors,num_layers);
-	arma_rq_n.col(0) = arma_rq_n(0,0) * onevec;
-	arma_rq_n.col(1) = arma_rq_n(0,1) * onevec; 
-	arma_rq_n.col(2) = arma_rq_n(0,2) * onevec;
-
-	arma::mat cosgamma = (arma::sum(((arma_rq_n % arma_re_n).t()))).t();
-
-	arma_rq_n = arma_rq_n.row(0);
-	
-	std::vector<arma::mat > pl_dp = dlegpoly(nmax, cosgamma);
-	arma::mat arma_pl = pl_dp[0];
-	arma::mat arma_dp = pl_dp[1];
-	
-	
-	double ratio_base =  ((arma::mat)(arma_rq_mag / re_mag))(0,0);
-	for(int i=0;i<nmax;++i)
-		ratio(i,0) = std::pow(ratio_base, arma_n_vec_t_m_1(i,0));
-
-	
-	arma::mat arma_z = arma_re_n - (cosgamma * arma_rq_n);
-	arma::mat arma_w = arma_wtemp % ratio;
-	
-	arma::mat arma_gterm1 = (arma_pl.t()) * (arma_w % arma_n_vec_t);
-	
-	arma::mat arma_gterm2 = (arma_dp.t()) * arma_w;
-	
-	arma::mat gain_matrix_right(num_sensors,num_dims);
-	gain_matrix_right.col(0) = (arma_z.col(0) % arma_gterm2);
-	gain_matrix_right.col(1) = (arma_z.col(1) % arma_gterm2);
-	gain_matrix_right.col(2) = (arma_z.col(2) % arma_gterm2);
-
-
-	gain_matrix += (arma_gterm1 * arma_rq_n) + gain_matrix_right;
-
-    return gain_matrix;
 }
 
 arma::mat fast_forward_model_lead_matrix_solution(std::vector<double>& rq){
@@ -338,30 +206,31 @@ arma::mat fast_forward_model_lead_matrix_solution(std::vector<double>& rq){
     return gain_matrix;
 }
 
-arma::cx_mat compute_gamma_sq_sqrt(arma::mat& gamma){
-	arma::mat gamma_sq = gamma*gamma;
-	arma::cx_vec eigval;
-	arma::cx_mat v;
-	arma::eig_gen(eigval, v, gamma_sq);
-	arma::cx_mat d = (v.i()) * gamma_sq * v;
-	arma::cx_mat d_sq = arma::sqrt(d);
-	arma::cx_mat gamma_sq_sqrt = v * d_sq * (v.i());
-	return gamma_sq_sqrt;
-}
-
 int main(int argc, char *argv[]){
 
 	bool is_distortionless = true;
 	std::string out_file_name;
-	if(is_script_mode)
+	std::string in_matrix_name_init;
+	std::string filter_matrix;
+	std::string cov_matrix;
+
+	if(is_script_mode){
 		out_file_name = (std::string)argv[1];
+		in_matrix_name_init = (std::string)argv[2];
+		filter_matrix = "./" + in_matrix_name_init + "filter_matrix.mat";
+		cov_matrix = "./" +in_matrix_name_init + "cov_matrix.mat";
+	}else{
+		filter_matrix= "ica_matrix.mat";
+		cov_matrix= "test_cov.mat";
+	}
+		
 
 	std::vector<double> rq {-6,-60,18};
 	arma::mat fm;
 	arma::mat identiy(sensor_map.size() ,sensor_map.size());
 	identiy.diag().ones();
 
-	fm.load("ica_matrix.mat", arma::raw_ascii);
+	fm.load(filter_matrix, arma::raw_ascii);
 	arma::mat montage_matrix(sensor_map.size(),sensor_map.size());
 	montage_matrix =  identiy - (1/sensor_map.size() * arma::ones(sensor_map.size() ,sensor_map.size()));
 
@@ -371,7 +240,7 @@ int main(int argc, char *argv[]){
 	
 	arma::mat g_t = g.t();
 	arma::mat cm;
-	cm.load("test_cov.mat", arma::raw_ascii);
+	cm.load(cov_matrix, arma::raw_ascii);
 	
 
 	if(is_distortionless){

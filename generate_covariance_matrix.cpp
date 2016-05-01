@@ -28,6 +28,20 @@ arma::mat whiten_sym_decorrelation(arma::mat& w){
     return (u * v_matrix.t());
 }
 
+std::vector<arma::mat> whiten_sym_decorrelation_init(arma::mat& w){
+    //W <- (W * W.T) ^{-1/2} * W or W = U * V.t()
+    int n_components = std::min({w.n_rows, w.n_cols});
+    arma::mat u, v_matrix; 
+    arma::vec simga_vector;
+    arma::svds(u, simga_vector, v_matrix, arma::sp_mat(w), n_components);
+    arma::mat simga_matrix = arma::diagmat(simga_vector);
+    arma::mat simga_matrix_udlr = arma::fliplr(arma::flipud(simga_matrix));
+
+    arma::mat nw = u * simga_matrix_udlr;
+    std::vector<arma::mat> nw_nd{(u * simga_matrix_udlr),(u * v_matrix.t())};
+    return nw_nd;
+}
+
 arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, double tolerance){
     arma::mat w = whiten_sym_decorrelation(w_init);
     double p_ = w_init.n_cols;
@@ -44,12 +58,12 @@ arma::mat fast_ica_parallel(arma::mat& x, arma::mat& w_init, int max_iter, doubl
         arma::mat w1_wt = w1 * w.t();
         double lim = arma::max(arma::abs((arma::abs((w1_wt.diag())) -1)));
         std::cout << "lim: " << lim << " tolerance: "  << tolerance << std::endl;
-        w = w1;
+        
         if(lim < tolerance)
             break;
-
         if(i == max_iter-1)
             std::cout << "max iteration excceeded" << std::endl;
+        w = w1;
            
     }
     return w;
@@ -59,13 +73,17 @@ int main(int argc, char *argv[]) {
 	std::string file_name(argv[1]);
 	arma::mat sample_matrix;
     sample_matrix.load(file_name, arma::raw_ascii);
+    std::string out_matrix_name_init(argv[2]);
+
+    std::string ica_name = out_matrix_name_init + "filter_matrix.mat";
+    std::string cov_name = out_matrix_name_init + "cov_matrix.mat";
 
     #ifdef IS_TIMER_ON
     auto normalization_start = std::chrono::high_resolution_clock::now();
     #endif
     double smmin = arma::min(arma::min(sample_matrix));
     double smmax = arma::max(arma::max(sample_matrix));
-    double sm_range = smmax - smmin;
+    double sm_range = smmax - smmin + 1;
     arma::mat sample_matrix_norm = (sample_matrix - smmin)/sm_range;
     #ifdef IS_TIMER_ON
     auto normalization_end = std::chrono::high_resolution_clock::now();
@@ -77,7 +95,7 @@ int main(int argc, char *argv[]) {
     auto covmat_start = std::chrono::high_resolution_clock::now();
     #endif
     arma::mat covmat = arma::cov(sample_matrix_norm);
-    covmat.save("test_cov.mat", arma::raw_ascii);
+    covmat.save(cov_name, arma::raw_ascii);
     #ifdef IS_TIMER_ON
     auto covmat_end = std::chrono::high_resolution_clock::now();
     auto covmat_difftime = covmat_end - covmat_start;
@@ -96,11 +114,12 @@ int main(int argc, char *argv[]) {
     auto whiten_difftime = whiten_end - whiten_start;
     std::cout << "whiten difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(whiten_difftime).count() << std::endl;
     #endif
+    std::vector<arma::mat> init_data_filter = whiten_sym_decorrelation_init(whiten_matrix);
 
     #ifdef IS_TIMER_ON
     auto converge_check_start = std::chrono::high_resolution_clock::now();
     #endif
-    arma::mat whiten_matrix_whiten_matrix_t = whiten_matrix * whiten_matrix.t();
+    arma::mat whiten_matrix_whiten_matrix_t = init_data_filter[0] * init_data_filter[0].t();
     double lim = arma::max(arma::abs((arma::abs((whiten_matrix_whiten_matrix_t.diag())) -1)));
     #ifdef IS_TIMER_ON
     auto converge_check_end = std::chrono::high_resolution_clock::now();
@@ -122,8 +141,6 @@ int main(int argc, char *argv[]) {
     std::cout << "fast_ica_parallel difftime (μs): " << std::chrono::duration_cast<std::chrono::microseconds>(difftime).count() << std::endl;
     #endif
 
-
-	
-    whiten_matrix.save("ica_matrix.mat", arma::raw_ascii);
+    init_data_filter[0].save(ica_name, arma::raw_ascii);
 	return 0;
 }
