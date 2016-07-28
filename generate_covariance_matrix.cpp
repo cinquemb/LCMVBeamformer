@@ -36,10 +36,11 @@ std::vector<arma::mat> whiten_sym_decorrelation_init(arma::mat& w){
     arma::vec simga_vector;
     arma::svds(u, simga_vector, v_matrix, arma::sp_mat(w), n_components);
     arma::mat simga_matrix = arma::diagmat(simga_vector);
+    //unitary transformations in order to select for min to max singular values that would minimize entropy of a given system
     arma::mat simga_matrix_udlr = arma::fliplr(arma::flipud(simga_matrix));
 
     arma::mat nw = u * simga_matrix_udlr;
-    std::vector<arma::mat> nw_nd{(u * simga_matrix_udlr),(u * v_matrix.t())};
+    std::vector<arma::mat> nw_nd{nw, (u * v_matrix.t())};
     return nw_nd;
 }
 
