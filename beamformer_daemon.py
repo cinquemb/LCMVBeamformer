@@ -24,7 +24,7 @@ import numpy as np
 moments_list = ['mean','stdv','skew','kurt']
 
 # svd with log(cosh) or svds with gibbs free energy
-decomp = 'fixed_svds_whitten_diff_2_scaling_1'
+decomp = 'fixed_svds_whitten_diff_7_scaling_1'
 
 def get_stdv(values, mean):
 	dif_sqaured = []

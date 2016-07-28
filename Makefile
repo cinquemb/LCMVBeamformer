@@ -23,9 +23,12 @@ JSONCPP=`pkg-config --cflags --libs jsoncpp`
 CPP= ccache clang++
 
 all:
-	$(CPP) forward_solution.cpp -o forward_solution $(CFLAGS)
-	$(CPP) generate_covariance_matrix.cpp -o generate_covariance_matrix $(CFLAGS)
-	$(CPP) generate_observation_matrix_from_running_moments.cpp -o gen_obs $(CFLAGS) $(JSONCPP)
+	$(CPP) -emit-llvm -c forward_solution.cpp -o forward_solution.ll $(CFLAGS)
+	$(CPP) -emit-llvm -c generate_covariance_matrix.cpp -o generate_covariance_matrix.ll $(CFLAGS)
+	$(CPP) -emit-llvm -c generate_observation_matrix_from_running_moments.cpp -o generate_observation_matrix_from_running_moments.ll $(CFLAGS) $(JSONCPP)
+	$(CPP) forward_solution.ll -o forward_solution $(CFLAGS)
+	$(CPP) generate_covariance_matrix.ll -o generate_covariance_matrix $(CFLAGS)
+	$(CPP) generate_observation_matrix_from_running_moments.ll -o gen_obs1 $(CFLAGS) $(JSONCPP)
 
 forward:
 	$(CPP) forward_solution.cpp -o forward_solution $(CFLAGS)

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 #include <chrono>
+#include <ctime>
 #include <armadillo>
 
 #define IS_TIMER_ON
@@ -128,7 +129,8 @@ int main(int argc, char *argv[]) {
     #endif
     std::cout << "converge_check_lim: " << lim << " tolerance: "  << 5e-2 << std::endl;
 
-    arma::mat w_init = arma::randn(sample_matrix.n_cols, sample_matrix.n_cols);
+    arma::arma_rng::set_seed(std::time(0));
+    arma::mat w_init = arma::randu(sample_matrix.n_cols, sample_matrix.n_cols);
     
     
     #ifdef IS_TIMER_ON
